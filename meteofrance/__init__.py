@@ -1,0 +1,1 @@
+from meteofrance import meteofrance
