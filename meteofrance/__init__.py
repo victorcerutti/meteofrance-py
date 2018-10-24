@@ -1,1 +1,1 @@
-from meteofrance import meteofrance
+from meteofrance.client import meteofranceClient

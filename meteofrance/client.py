@@ -10,10 +10,12 @@ SEARCH_API = 'http://www.meteofrance.com/mf3-rpc-portlet/rest/lieu/facet/previsi
 RAIN_FORECAST_API = 'http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/{}/'
 WEATHER_FORECAST_URL = 'http://www.meteofrance.com/previsions-meteo-france/{}/{}'
 
+
 class meteofranceError(Exception):
     """Raise when errors occur while fetching or parsing MeteoFrance data"""
 
-class meteofrance(object):
+
+class meteofranceClient(object):
     def __init__(self, postal_code):
         """Initialize the client object."""
         self.postal_code = postal_code
@@ -70,7 +72,7 @@ class meteofrance(object):
                 soup = BeautifulSoup(result._content, 'html.parser')
                 if soup.find(class_="day-summary-label") is not None:
                     self._weather_html_soup = soup
-                    self._parse_insee_code(result._content)
+                    self._parse_insee_code(result._content.decode('utf-8'))
                     return
             raise meteofranceError("Error while fetch weather forecast")
         except ValueError as err:
@@ -92,28 +94,31 @@ class meteofrance(object):
 
     def _format_data(self):
         """Format data from JSON and HTML returned by Meteo-France."""
-        rain_forecast = self._rain_forecast
-        if rain_forecast is not False:
-            self._data["rain_foreacast"] = rain_forecast["niveauPluieText"][0]
-            self._data["next_rain"] = self._get_next_rain_time()
-            self._data["next_rain_intervals"] = {}
-            for interval in range(0, len(rain_forecast["dataCadran"])):
-                self._data["next_rain_intervals"]["rain_level_"+str(interval*5)+"min"] = rain_forecast["dataCadran"][interval]["niveauPluie"]
-        soup = self._weather_html_soup
-        if soup is not False:
-            self._data["weather"] = soup.find(class_="day-summary-label").string
-            self._data["temperature"] = soup.find(class_="day-summary-temperature").string
-            self._data["wind_speed"] = next(soup.find(class_="day-summary-wind").stripped_strings)
-            #wind_bearing
-            #humidity
-            day_probabilities = soup.find(class_="day-probabilities").find_all("li")
-            self._data["rain_chance"] = day_probabilities[0].strong.string
-            self._data["thunder_chance"] = day_probabilities[1].strong.string
-            self._data["freeze_chance"] = day_probabilities[2].strong.string
-            self._data["snow_chance"] = day_probabilities[3].strong.string
-            #pressure
-            #clouds
-            #weather_code
+        try:
+            rain_forecast = self._rain_forecast
+            if rain_forecast is not False:
+                self._data["rain_forecast"] = rain_forecast["niveauPluieText"][0]
+                self._data["next_rain"] = self._get_next_rain_time()
+                self._data["next_rain_intervals"] = {}
+                for interval in range(0, len(rain_forecast["dataCadran"])):
+                    self._data["next_rain_intervals"]["rain_level_"+str(interval*5)+"min"] = rain_forecast["dataCadran"][interval]["niveauPluie"]
+            soup = self._weather_html_soup
+            if soup is not False:
+                self._data["weather"] = soup.find(class_="day-summary-label").string
+                self._data["temperature"] = soup.find(class_="day-summary-temperature").string.replace('°C', '')
+                self._data["wind_speed"] = next(soup.find(class_="day-summary-wind").stripped_strings).replace(' km/h', '')
+                #wind_bearing
+                #humidity
+                day_probabilities = soup.find(class_="day-probabilities").find_all("li")
+                self._data["rain_chance"] = day_probabilities[0].strong.string.split()[0]
+                self._data["thunder_chance"] = day_probabilities[1].strong.string.split()[0]
+                self._data["freeze_chance"] = day_probabilities[2].strong.string.split()[0]
+                self._data["snow_chance"] = day_probabilities[3].strong.string.split()[0]
+                #pressure
+                #clouds
+                #weather_code
+        except ValueError as err:
+            raise meteofranceError("Error while formatting datas")
 
     def get_data(self):
         """Return formatted data of current forecast"""

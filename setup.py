@@ -1,9 +1,8 @@
 from setuptools import setup
-import twine
 
 setup(
     name='meteofrance',
-    version='0.1.2',
+    version='0.1.8',
     description = 'Extract Meteo-France weather forecast',
     author = 'victorcerutti',
     author_email = 'victorcerutti+meteofrance@gmail.com',
