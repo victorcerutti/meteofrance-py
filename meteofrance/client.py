@@ -44,6 +44,7 @@ class meteofranceClient(object):
                 self._insee_code = result[0]["id"]
                 self._city_slug = result[0]["slug"]
                 self._rain_available = result[0]["pluieAvalaible"]
+                self._data["name"] = result[0]["slug"].title()
                 return
             raise meteofranceError("Error while parsing data from meteofrance")
         except ValueError as err:
