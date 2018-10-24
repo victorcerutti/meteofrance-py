@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='meteofrance',
-    version='0.1.8',
+    version='0.1.9',
     description = 'Extract Meteo-France weather forecast',
     author = 'victorcerutti',
     author_email = 'victorcerutti+meteofrance@gmail.com',
@@ -13,5 +13,5 @@ setup(
        'beautifulsoup4'
     ],
     license='MIT',
-    long_description='Extract Meteo-France current weather and rain forecast',
+    long_description='Extract Meteo-France current weather and 1 hour rain forecast',
 )

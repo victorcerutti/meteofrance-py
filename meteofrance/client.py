@@ -107,16 +107,13 @@ class meteofranceClient(object):
                 self._data["weather"] = soup.find(class_="day-summary-label").string
                 self._data["temperature"] = soup.find(class_="day-summary-temperature").string.replace('°C', '')
                 self._data["wind_speed"] = next(soup.find(class_="day-summary-wind").stripped_strings).replace(' km/h', '')
-                #wind_bearing
-                #humidity
                 day_probabilities = soup.find(class_="day-probabilities").find_all("li")
                 self._data["rain_chance"] = day_probabilities[0].strong.string.split()[0]
                 self._data["thunder_chance"] = day_probabilities[1].strong.string.split()[0]
                 self._data["freeze_chance"] = day_probabilities[2].strong.string.split()[0]
                 self._data["snow_chance"] = day_probabilities[3].strong.string.split()[0]
-                #pressure
-                #clouds
-                #weather_code
+                self._data["uv"] = soup.find(class_="day-summary-uv").string.split()[1]
+
         except ValueError as err:
             raise meteofranceError("Error while formatting datas")
 
