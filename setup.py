@@ -3,7 +3,7 @@ import twine
 
 setup(
     name='meteofrance',
-    version='0.1.1',
+    version='0.1.2',
     description = 'Extract Meteo-France weather forecast',
     author = 'victorcerutti',
     author_email = 'victorcerutti+meteofrance@gmail.com',
@@ -11,8 +11,7 @@ setup(
     packages=['meteofrance',],
     install_requires=[
        'requests',
-       'beautifulsoup4',
-       're'
+       'beautifulsoup4'
     ],
     license='MIT',
     long_description='Extract Meteo-France current weather and rain forecast',
