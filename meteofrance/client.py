@@ -4,7 +4,9 @@ Meteo France raining forecast.
 
 import re
 import requests
+import datetime
 from bs4 import BeautifulSoup
+
 
 SEARCH_API = 'http://www.meteofrance.com/mf3-rpc-portlet/rest/lieu/facet/previsions/search/{}'
 RAIN_FORECAST_API = 'http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/{}/'
@@ -17,7 +19,7 @@ class meteofranceError(Exception):
 
 class meteofranceClient():
     """Client to fetch and parse data from Meteo-France"""
-    def __init__(self, postal_code):
+    def __init__(self, postal_code, update=False):
         """Initialize the client object."""
         self.postal_code = postal_code
         self._city_slug = False
@@ -27,7 +29,8 @@ class meteofranceClient():
         self._weather_html_soup = False
         self._data = {}
         self._init_codes()
-        self.update()
+        if update:
+            self.update()
 
     def update(self):
         """Fetch new data and format it"""
@@ -98,26 +101,33 @@ class meteofranceClient():
     def _format_data(self):
         """Format data from JSON and HTML returned by Meteo-France."""
         try:
+            self._data["fetched_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             rain_forecast = self._rain_forecast
             if rain_forecast is not False:
-                self._data["rain_forecast"] = rain_forecast["niveauPluieText"][0]
+                self._data["rain_forecast"] = ''#rain_forecast["niveauPluieText"][0]
                 self._data["next_rain"] = self._get_next_rain_time()
+                emojis = [' ','☀️','🌦','🌧','💦']
                 self._data["next_rain_intervals"] = {}
                 for interval in range(0, len(rain_forecast["dataCadran"])):
-                    self._data["next_rain_intervals"]["rain_level_"+str(interval*5)+"min"] = rain_forecast["dataCadran"][interval]["niveauPluie"]
+                    self._data["next_rain_intervals"]["rain_level_"+str(interval*5)+"min"] = int(rain_forecast["dataCadran"][interval]["niveauPluie"])
+                    self._data["rain_forecast"] += emojis[int(rain_forecast["dataCadran"][interval]["niveauPluie"])]
             soup = self._weather_html_soup
             if soup is not False:
                 self._data["weather"] = soup.find(class_="day-summary-label").string
-                self._data["temperature"] = soup.find(class_="day-summary-temperature").string.replace('°C', '')
-                self._data["wind_speed"] = next(soup.find(class_="day-summary-wind").stripped_strings).replace(' km/h', '')
+                self._data["temperature"] = int(soup.find(class_="day-summary-temperature").string.replace('°C', ''))
+                try:
+                    self._data["wind_speed"] = int(next(soup.find(class_="day-summary-wind").stripped_strings).replace(' km/h', ''))
+                except: #replace '< 5' by 0
+                    self._data["wind_speed"] = 0
                 day_probabilities = soup.find(class_="day-probabilities")
                 if day_probabilities:
                     day_probabilities = day_probabilities.find_all("li")
-                    self._data["rain_chance"] = day_probabilities[0].strong.string.split()[0]
-                    self._data["thunder_chance"] = day_probabilities[1].strong.string.split()[0]
-                    self._data["freeze_chance"] = day_probabilities[2].strong.string.split()[0]
-                    self._data["snow_chance"] = day_probabilities[3].strong.string.split()[0]
-                self._data["uv"] = soup.find(class_="day-summary-uv").string.split()[1]
+                    self._data["rain_chance"] = int(day_probabilities[0].strong.string.split()[0])
+                    self._data["thunder_chance"] = int(day_probabilities[1].strong.string.split()[0])
+                    self._data["freeze_chance"] = int(day_probabilities[2].strong.string.split()[0])
+                    self._data["snow_chance"] = int(day_probabilities[3].strong.string.split()[0])
+                if soup.find(class_="day-summary-uv").string:
+                    self._data["uv"] = int(soup.find(class_="day-summary-uv").string.split()[1])
 
         except Exception as err:
             raise meteofranceError("Error while formatting datas: "+err)

@@ -2,8 +2,8 @@ from setuptools import setup
 
 setup(
     name='meteofrance',
-    version='0.2.1',
-    description = 'Extract Meteo-France weather forecast',
+    version='0.2.7',
+    description = 'Meteo-France weather forecast',
     author = 'victorcerutti',
     author_email = 'victorcerutti+meteofrance@gmail.com',
     url = 'https://github.com/victorcerutti/meteofrance-py',
