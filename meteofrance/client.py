@@ -114,11 +114,26 @@ class meteofranceClient():
             soup = self._weather_html_soup
             if soup is not False:
                 self._data["weather"] = soup.find(class_="day-summary-label").string
+
+                try: #extract classname
+                    self._data["weather_class"] = soup.find(class_="day-summary-image").find("span").attrs['class'][1]
+                except:
+                    self._data["weather_class"] = None
+
                 self._data["temperature"] = int(soup.find(class_="day-summary-temperature").string.replace('°C', ''))
+
                 try:
                     self._data["wind_speed"] = int(next(soup.find(class_="day-summary-wind").stripped_strings).replace(' km/h', ''))
                 except: #replace '< 5' by 0
                     self._data["wind_speed"] = 0
+
+                try:
+                    self._data["wind_bearing"] = soup.find(class_="day-summary-wind").find("span").attrs['class'][1][2:]
+                except: #replace '< 5' by 0
+                    self._data["wind_bearing"] = None
+                if self._data["wind_bearing"] == "V": #no wind
+                    self._data["wind_bearing"] = None
+
                 day_probabilities = soup.find(class_="day-probabilities")
                 if day_probabilities:
                     day_probabilities = day_probabilities.find_all("li")
