@@ -1,5 +1,14 @@
+# -*- coding: utf-8 -*-
 from meteofrance.client import meteofranceClient, meteofranceError
 import time
+
+client = meteofranceClient('luxembourg', True)
+print(client.get_data())
+
+client = meteofranceClient('01700', True)
+print(client.get_data())
+
+exit()
 
 #marseille : no rain forecast
 try:
@@ -36,7 +45,7 @@ try:
 except meteofranceError as exp:
     print(exp)
 
-#pointe-à-pitre : result from météo-france is different and it returns less data
+#pointe-a-pitre : result from meteo-france is different and it returns less data
 try:
     client = meteofranceClient(97110, True)
     print(client.get_data())

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Meteo France raining forecast.
 """
@@ -5,12 +6,14 @@ Meteo France raining forecast.
 import re
 import requests
 import datetime
+import string
 from bs4 import BeautifulSoup
 
 
 SEARCH_API = 'http://www.meteofrance.com/mf3-rpc-portlet/rest/lieu/facet/previsions/search/{}'
 RAIN_FORECAST_API = 'http://www.meteofrance.com/mf3-rpc-portlet/rest/pluie/{}/'
 WEATHER_FORECAST_URL = 'http://www.meteofrance.com/previsions-meteo-france/{}/{}'
+WEATHER_FORECAST_WORLD_URL = 'http://www.meteofrance.com/previsions-meteo-monde/{}/{}'
 
 
 class meteofranceError(Exception):
@@ -21,12 +24,14 @@ class meteofranceClient():
     """Client to fetch and parse data from Meteo-France"""
     def __init__(self, postal_code, update=False):
         """Initialize the client object."""
+        print(postal_code)
         self.postal_code = postal_code
         self._city_slug = False
         self._insee_code = False
         self._rain_forecast = False
         self._rain_available = False
         self._weather_html_soup = False
+        self._type = None
         self._data = {}
         self._init_codes()
         if update:
@@ -45,12 +50,13 @@ class meteofranceClient():
         try:
             results = requests.get(url, timeout=10).json()
             for result in results:
-                if result["id"] and result["type"] == "VILLE_FRANCE":
+                if result["id"] and (result["type"] == "VILLE_FRANCE" or result["type"] == "VILLE_MONDE"):
                     self._insee_code = result["id"]
                     self._city_slug = result["slug"]
                     self._rain_available = result["pluieAvalaible"]
                     self._data["name"] = result["slug"].title()
                     self.postal_code = result["codePostal"]
+                    self._type = result["type"]
                     return
             raise meteofranceError("Error: no forecast for the query `{}`".format(self.postal_code))
         except Exception as err:
@@ -70,7 +76,11 @@ class meteofranceClient():
 
     def _fetch_foreacast_data(self):
         """Get the forecast and current weather from Meteo-France."""
-        url = WEATHER_FORECAST_URL.format(self._city_slug, self.postal_code)
+        if self._type == "VILLE_MONDE":
+            url = WEATHER_FORECAST_WORLD_URL.format(self._city_slug, self._insee_code)
+        else:
+            url = WEATHER_FORECAST_URL.format(self._city_slug, self.postal_code)
+        print(url)
         try:
             result = requests.get(url, timeout=10)
             if result.status_code == 200:
@@ -98,6 +108,15 @@ class meteofranceClient():
             time_to_rain += 5
         return "No rain"
 
+    def _get_next_sun_time(self):
+        """Get the minutes to the next sun"""
+        time_to_sun = 0
+        for interval in self._rain_forecast["dataCadran"]:
+            if interval["niveauPluie"] <= 1:
+                return time_to_sun
+            time_to_sun += 5
+        return 60
+
     def _format_data(self):
         """Format data from JSON and HTML returned by Meteo-France."""
         try:
@@ -111,16 +130,25 @@ class meteofranceClient():
                 for interval in range(0, len(rain_forecast["dataCadran"])):
                     self._data["next_rain_intervals"]["rain_level_"+str(interval*5)+"min"] = int(rain_forecast["dataCadran"][interval]["niveauPluie"])
                     self._data["rain_forecast"] += emojis[int(rain_forecast["dataCadran"][interval]["niveauPluie"])]
+                if self._data["next_rain"] == 'No rain':
+                    self._data["rain_forecast_text"] = "Pas de pluie dans l'heure"
+                elif self._data["next_rain"] == 0:
+                    self._data["rain_forecast_text"] = "Pluie pendant encore au moins {} min".format(self._get_next_sun_time())
+                else:
+                    self._data["rain_forecast_text"] = "Risque de pluie dans {} min".format(self._data["next_rain"])
             soup = self._weather_html_soup
             if soup is not False:
-                self._data["weather"] = soup.find(class_="day-summary-label").string
+                self._data["weather"] = soup.find(class_="day-summary-label").string.strip()
 
                 try: #extract classname
                     self._data["weather_class"] = soup.find(class_="day-summary-image").find("span").attrs['class'][1]
                 except:
                     self._data["weather_class"] = None
 
-                self._data["temperature"] = int(soup.find(class_="day-summary-temperature").string.replace('°C', ''))
+                try:
+                    self._data["temperature"] = int(re.sub("[^0-9]","",soup.find(class_="day-summary-temperature").string))
+                except: #weird class name of world pages
+                    self._data["temperature"] = int(re.sub("[^0-9]","",soup.find(class_="day-summary-temperature-outremer").string))
 
                 try:
                     self._data["wind_speed"] = int(next(soup.find(class_="day-summary-wind").stripped_strings).replace(' km/h', ''))
@@ -144,8 +172,29 @@ class meteofranceClient():
                 if soup.find(class_="day-summary-uv").string:
                     self._data["uv"] = int(soup.find(class_="day-summary-uv").string.split()[1])
 
+                self._data["forecast"] = {}
+                daydatas = soup.find(class_="liste-jours").find_all("li")
+                for day in range(0, 4):
+                    try:
+                        daydata = daydatas[day+1]
+                        forecast = {}
+                        forecast["date"] = daydata.find("a").string
+                        forecast["weather"] = daydata.find("dd").string.strip()
+                        forecast["min_temp"] = int(re.sub("[^0-9]","",daydata.find(class_="min-temp").string))
+                        forecast["max_temp"] = int(re.sub("[^0-9]","",daydata.find(class_="max-temp").string))
+                        forecast["weather_class"] = daydata.find("dd").attrs['class'][1]
+                        self._data["forecast"][day] = forecast
+                    except:
+                        raise
+
+
+
         except Exception as err:
-            raise meteofranceError("Error while formatting datas: "+err)
+            raise meteofranceError("Error while formatting datas: {}".format(err))
+
+    def _format_data_for_day(self):
+        """ Format data forecast for the next days"""
+
 
     def get_data(self):
         """Return formatted data of current forecast"""
