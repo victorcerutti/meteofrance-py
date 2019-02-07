@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='meteofrance',
-    version='0.2.8',
+    version='0.3.0',
     description = 'Meteo-France weather forecast',
     author = 'victorcerutti',
     author_email = 'victorcerutti+meteofrance@gmail.com',

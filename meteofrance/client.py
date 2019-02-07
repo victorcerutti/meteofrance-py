@@ -80,7 +80,7 @@ class meteofranceClient():
             url = WEATHER_FORECAST_WORLD_URL.format(self._city_slug, self._insee_code)
         else:
             url = WEATHER_FORECAST_URL.format(self._city_slug, self.postal_code)
-        print(url)
+
         try:
             result = requests.get(url, timeout=10)
             if result.status_code == 200:
