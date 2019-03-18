@@ -58,7 +58,7 @@ class meteofranceClient():
                     self.postal_code = result["codePostal"]
                     self._type = result["type"]
                     if result["parent"] and result["parent"] and result["parent"]["type"] == "DEPT_FRANCE":
-                        self._data["dept"] = result["parent"]["id"].lower()
+                        self._data["dept"] = result["parent"]["id"][4:]
                     return
             raise meteofranceError("Error: no forecast for the query `{}`".format(self.postal_code))
         except Exception as err:
