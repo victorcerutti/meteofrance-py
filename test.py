@@ -2,6 +2,29 @@
 from meteofrance.client import meteofranceClient, meteofranceError
 import time
 
+
+client = meteofranceClient('01700')
+client.need_rain_forecast = False
+client.update()
+print(client.get_data())
+
+exit()
+
+print(client.need_rain_forecast)
+client.need_rain_forecast = True
+time.sleep(1)
+print(client.need_rain_forecast)
+client.update()
+print(client.get_data())
+
+
+exit()
+
+client = meteofranceClient('oslo, norvege', True)
+print(client.get_data())
+
+exit()
+
 client = meteofranceClient('luxembourg', True)
 print(client.get_data())
 

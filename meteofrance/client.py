@@ -22,15 +22,15 @@ class meteofranceError(Exception):
 
 class meteofranceClient():
     """Client to fetch and parse data from Meteo-France"""
-    def __init__(self, postal_code, update=False):
+    def __init__(self, postal_code, update=False, need_rain_forecast=True):
         """Initialize the client object."""
-        print(postal_code)
         self.postal_code = postal_code
         self._city_slug = False
         self._insee_code = False
         self._rain_forecast = False
         self._rain_available = False
         self._weather_html_soup = False
+        self.need_rain_forecast = need_rain_forecast
         self._type = None
         self._data = {}
         self._init_codes()
@@ -40,7 +40,7 @@ class meteofranceClient():
     def update(self):
         """Fetch new data and format it"""
         self._fetch_foreacast_data()
-        if self._rain_available is True:
+        if (self._rain_available is True and self.need_rain_forecast is True):
             self._fetch_rain_forecast()
         self._format_data()
 
@@ -57,6 +57,8 @@ class meteofranceClient():
                     self._data["name"] = result["slug"].title()
                     self.postal_code = result["codePostal"]
                     self._type = result["type"]
+                    if result["parent"] and result["parent"] and result["parent"]["type"] == "DEPT_FRANCE":
+                        self._data["dept"] = result["parent"]["id"].lower()
                     return
             raise meteofranceError("Error: no forecast for the query `{}`".format(self.postal_code))
         except Exception as err:
@@ -146,9 +148,9 @@ class meteofranceClient():
                     self._data["weather_class"] = None
 
                 try:
-                    self._data["temperature"] = int(re.sub("[^0-9]","",soup.find(class_="day-summary-temperature").string))
+                    self._data["temperature"] = int(re.sub("[^0-9\-]","",soup.find(class_="day-summary-temperature").string))
                 except: #weird class name of world pages
-                    self._data["temperature"] = int(re.sub("[^0-9]","",soup.find(class_="day-summary-temperature-outremer").string))
+                    self._data["temperature"] = int(re.sub("[^0-9\-]","",soup.find(class_="day-summary-temperature-outremer").string))
 
                 try:
                     self._data["wind_speed"] = int(next(soup.find(class_="day-summary-wind").stripped_strings).replace(' km/h', ''))
@@ -174,14 +176,14 @@ class meteofranceClient():
 
                 self._data["forecast"] = {}
                 daydatas = soup.find(class_="liste-jours").find_all("li")
-                for day in range(0, 4):
+                for day in range(0, 5):
                     try:
                         daydata = daydatas[day+1]
                         forecast = {}
                         forecast["date"] = daydata.find("a").string
                         forecast["weather"] = daydata.find("dd").string.strip()
-                        forecast["min_temp"] = int(re.sub("[^0-9]","",daydata.find(class_="min-temp").string))
-                        forecast["max_temp"] = int(re.sub("[^0-9]","",daydata.find(class_="max-temp").string))
+                        forecast["min_temp"] = int(re.sub("[^0-9\-]","",daydata.find(class_="min-temp").string))
+                        forecast["max_temp"] = int(re.sub("[^0-9\-]","",daydata.find(class_="max-temp").string))
                         forecast["weather_class"] = daydata.find("dd").attrs['class'][1]
                         self._data["forecast"][day] = forecast
                     except:
