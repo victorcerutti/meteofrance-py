@@ -1,94 +1,129 @@
 # -*- coding: utf-8 -*-
 from meteofrance.client import meteofranceClient, meteofranceError
 import time
+import unittest
 
+class TestLocation(unittest.TestCase):
+  def test_oslo(self):
+    client = meteofranceClient('oslo, norvege', True)
+    data = client.get_data()
+    self.assertEqual(data['name'], 'Oslo')
 
-client = meteofranceClient('01700')
-client.need_rain_forecast = False
-client.update()
-print(client.get_data())
+  def test_luxembourg(self):
+    client = meteofranceClient('luxembourg', True)
+    data = client.get_data()
+    self.assertEqual(data['name'], 'Luxembourg')
 
-exit()
+  def test_postal_code(self):
+    client = meteofranceClient('80000', True)
+    data = client.get_data()
+    self.assertEqual(data['name'], 'Amiens')
 
-print(client.need_rain_forecast)
-client.need_rain_forecast = True
-time.sleep(1)
-print(client.need_rain_forecast)
-client.update()
-print(client.get_data())
+  def test_city_name(self):
+    client = meteofranceClient('Brest', True)
+    data = client.get_data()
+    self.assertEqual(data['name'], 'Brest')
+    self.assertEqual(data['dept'], '29')
 
+  #postal code is not correct : should return the first result which is "Ableiges"
+  def test_department(self):
+    client = meteofranceClient('95', True)
+    data = client.get_data()
+    self.assertEqual(data['name'], 'Ableiges')
 
-exit()
+  def f_test_invalid(self):
+    meteofranceClient('foobar')
 
-client = meteofranceClient('oslo, norvege', True)
-print(client.get_data())
+  def test_invalid(self):
+    self.assertRaises(meteofranceError, self.f_test_invalid)
 
-exit()
+class TestClientData(unittest.TestCase):
+  def test_beynost(self):
+    client = meteofranceClient('01700')
+    client.need_rain_forecast = False
+    client.update()
+    data = client.get_data()
+    self.assertIn('name', data)
+    self.assertIn('dept', data)
+    self.assertIn('fetched_at', data)
+    self.assertIn('forecast', data)
+    self.assertIn('freeze_chance', data)
+    self.assertIn('rain_chance', data)
+    self.assertIn('snow_chance', data)
+    self.assertIn('temperature', data)
+    self.assertIn('thunder_chance', data)
+    self.assertIn('uv', data)
+    self.assertIn('weather_class', data)
+    self.assertIn('weather', data)
+    self.assertIn('wind_bearing', data)
+    self.assertIn('wind_speed', data)
+    self.assertNotIn('next_rain_intervals', data)
+    self.assertNotIn('next_rain', data)
+    self.assertNotIn('rain_forecast_text', data)
+    self.assertNotIn('rain_forecast', data)
 
-client = meteofranceClient('luxembourg', True)
-print(client.get_data())
+  # pointe-a-pitre : result from meteo-france is different and it returns less data
+  def test_pointe_a_pitre(self):
+    client = meteofranceClient('97110')
+    client.need_rain_forecast = False
+    client.update()
+    data = client.get_data()
+    self.assertIn('name', data)
+    self.assertNotIn('dept', data)
+    self.assertIn('fetched_at', data)
+    self.assertIn('forecast', data)
+    self.assertNotIn('freeze_chance', data)
+    self.assertNotIn('rain_chance', data)
+    self.assertNotIn('snow_chance', data)
+    self.assertIn('temperature', data)
+    self.assertNotIn('thunder_chance', data)
+    self.assertNotIn('uv', data)
+    self.assertIn('weather_class', data)
+    self.assertIn('weather', data)
+    self.assertIn('wind_bearing', data)
+    self.assertIn('wind_speed', data)
+    self.assertNotIn('next_rain_intervals', data)
+    self.assertNotIn('next_rain', data)
+    self.assertNotIn('rain_forecast_text', data)
+    self.assertNotIn('rain_forecast', data)
 
-client = meteofranceClient('01700', True)
-print(client.get_data())
+class TestRainForecast(unittest.TestCase):
+  def test_rain_forecast_is_updated(self):
+    client = meteofranceClient('01700')
+    client.need_rain_forecast = False
+    client.update()
+    self.assertEqual(client.need_rain_forecast, False)
+    data = client.get_data()
+    self.assertNotIn('next_rain_intervals', data)
+    self.assertNotIn('next_rain', data)
+    self.assertNotIn('rain_forecast_text', data)
+    self.assertNotIn('rain_forecast', data)
+    client.need_rain_forecast = True
+    client.update()
+    self.assertEqual(client.need_rain_forecast, True)
+    data = client.get_data()
+    self.assertIn('next_rain_intervals', data)
+    self.assertIn('next_rain', data)
+    self.assertIn('rain_forecast_text', data)
+    self.assertIn('rain_forecast', data)
 
-exit()
-
-#marseille : no rain forecast
-try:
+  #marseille : no rain forecast
+  def test_marseille(self):
     client = meteofranceClient(13000, True)
-    print(client.get_data())
-except meteofranceError as exp:
-    print(exp)
+    data = client.get_data()
+    self.assertNotIn('next_rain_intervals', data)
+    self.assertNotIn('next_rain', data)
+    self.assertNotIn('rain_forecast_text', data)
+    self.assertNotIn('rain_forecast', data)
 
-#Rouen : rain forecast available
-try:
+  #Rouen : rain forecast available
+  def test_rouen(self):
     client = meteofranceClient(76000, True)
-    print(client.get_data())
-except meteofranceError as exp:
-    print(exp)
+    data = client.get_data()
+    self.assertIn('next_rain_intervals', data)
+    self.assertIn('next_rain', data)
+    self.assertIn('rain_forecast_text', data)
+    self.assertIn('rain_forecast', data)
 
-#postal code is not correct : should return the first result which is "Ableiges"
-try:
-    client = meteofranceClient(95, True)
-    print(client.get_data())
-except meteofranceError as exp:
-    print(exp)
-
-#postal code is a city name : should work anyway with Brest forecast
-try:
-    client = meteofranceClient("Brest", True)
-    print(client.get_data())
-except meteofranceError as exp:
-    print(exp)
-
-#postal code is not correct : should return an error
-try:
-    client = meteofranceClient("foo", True)
-    print(client.get_data())
-except meteofranceError as exp:
-    print(exp)
-
-#pointe-a-pitre : result from meteo-france is different and it returns less data
-try:
-    client = meteofranceClient(97110, True)
-    print(client.get_data())
-except meteofranceError as exp:
-    print(exp)
-
-try:
-    client = meteofranceClient(80000, True)
-    print(client.get_data())
-except meteofranceError as exp:
-    print(exp)
-
-"""
-#if needed, test update
-print("waiting 5 minutes to show update")
-time.sleep(300)
-client.update()
-print(client.get_data())
-"""
-
-
-print("DONE")
-exit()
+if __name__ == '__main__':
+    unittest.main()
