@@ -77,7 +77,7 @@ class TestClientData(unittest.TestCase):
     self.assertNotIn('snow_chance', data)
     self.assertIn('temperature', data)
     self.assertNotIn('thunder_chance', data)
-    self.assertNotIn('uv', data)
+    self.assertIn('uv', data)
     self.assertIn('weather_class', data)
     self.assertIn('weather', data)
     self.assertIn('wind_bearing', data)

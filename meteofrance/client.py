@@ -169,8 +169,15 @@ class meteofranceClient():
                     day_probabilities = day_probabilities.find_all("li")
                     self._data["rain_chance"] = int(day_probabilities[0].strong.string.split()[0])
                     self._data["thunder_chance"] = int(day_probabilities[1].strong.string.split()[0])
-                    self._data["freeze_chance"] = int(day_probabilities[2].strong.string.split()[0])
-                    self._data["snow_chance"] = int(day_probabilities[3].strong.string.split()[0])
+                    try:
+                        self._data["freeze_chance"] = int(day_probabilities[2].strong.string.split()[0])
+                    except:
+                        self._data["freeze_chance"] = 0
+                    try:
+                        self._data["snow_chance"] = int(day_probabilities[3].strong.string.split()[0])
+                    except:
+                        self._data["snow_chance"] = 0
+
                 if soup.find(class_="day-summary-uv").string:
                     self._data["uv"] = int(soup.find(class_="day-summary-uv").string.split()[1])
 
