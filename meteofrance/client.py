@@ -48,10 +48,19 @@ class meteofranceClient():
         """Search and set city slug and insee code."""
         url = SEARCH_API.format(self.postal_code)
         try:
-            results = requests.get(url, timeout=10).json()
+            response = requests.get(url, timeout=10)
+            if response.history:
+                raise meteofranceError("Error: www.meteofrance.com is overloaded or in maintenance and return a redirection. Unable to get the data from the source.")
+        
+            elif response.status_code != 200:
+                raise meteofranceError("Error: www.meteofrance.com server return an unexpected status code (%s). Unable to get the data from source.", response.status_code)
+            
+            results = response.json()
+            
             for result in results:
                 if result["id"] and (result["type"] == "VILLE_FRANCE" or result["type"] == "VILLE_MONDE"):
                     self._insee_code = result["id"]
+                    self._data['insee_code']= self._insee_code
                     self._city_slug = result["slug"]
                     self._rain_available = result["pluieAvalaible"]
                     self._data["name"] = result["slug"].title()
@@ -60,6 +69,7 @@ class meteofranceClient():
                     self._type = result["type"]
                     if result["parent"] and result["parent"] and result["parent"]["type"] == "DEPT_FRANCE":
                         self._data["dept"] = result["parent"]["id"][4:]
+                        self._data["dept_name"] = result["parent"]["nomAffiche"]
                     return
             raise meteofranceError("Error: no forecast for the query `{}`".format(self.postal_code))
         except Exception as err:
