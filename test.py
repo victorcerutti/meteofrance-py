@@ -8,28 +8,33 @@ class TestLocation(unittest.TestCase):
     client = meteofranceClient('oslo, norvege', True)
     data = client.get_data()
     self.assertEqual(data['name'], 'Oslo')
+    self.assertEqual(data['printName'], u'Oslo (Norvège)')
 
   def test_luxembourg(self):
     client = meteofranceClient('luxembourg', True)
     data = client.get_data()
     self.assertEqual(data['name'], 'Luxembourg')
+    self.assertEqual(data['printName'], u'Luxembourg (Luxembourg )')
 
   def test_postal_code(self):
     client = meteofranceClient('80000', True)
     data = client.get_data()
     self.assertEqual(data['name'], 'Amiens')
+    self.assertEqual(data['dept'], '80')
+    self.assertEqual(data['printName'], 'Amiens (80000)')
 
   def test_city_name(self):
     client = meteofranceClient('Brest', True)
     data = client.get_data()
     self.assertEqual(data['name'], 'Brest')
-    self.assertEqual(data['dept'], '29')
+    self.assertEqual(data['printName'], u'Brest (Biélorussie)')
 
   #postal code is not correct : should return the first result which is "Ableiges"
   def test_department(self):
     client = meteofranceClient('95', True)
     data = client.get_data()
     self.assertEqual(data['name'], 'Ableiges')
+    self.assertEqual(data['printName'], 'Ableiges (95450)')
 
   def f_test_invalid(self):
     meteofranceClient('foobar')

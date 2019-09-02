@@ -55,6 +55,7 @@ class meteofranceClient():
                     self._city_slug = result["slug"]
                     self._rain_available = result["pluieAvalaible"]
                     self._data["name"] = result["slug"].title()
+                    self._data["printName"] = result["nomAffiche"]
                     self.postal_code = result["codePostal"]
                     self._type = result["type"]
                     if result["parent"] and result["parent"] and result["parent"]["type"] == "DEPT_FRANCE":
