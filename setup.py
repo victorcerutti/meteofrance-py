@@ -10,7 +10,8 @@ setup(
     packages=['meteofrance',],
     install_requires=[
        'requests',
-       'beautifulsoup4'
+       'beautifulsoup4',
+       'pytz'
     ],
     license='MIT',
     long_description='Extract Meteo-France current weather and 1 hour rain forecast',

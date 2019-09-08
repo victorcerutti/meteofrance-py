@@ -64,6 +64,7 @@ class TestClientData(unittest.TestCase):
     self.assertIn('wind_speed', data)
     self.assertNotIn('next_rain_intervals', data)
     self.assertNotIn('next_rain', data)
+    self.assertNotIn('next_rain_datetime', data)
     self.assertNotIn('rain_forecast_text', data)
     self.assertNotIn('rain_forecast', data)
 
@@ -89,6 +90,7 @@ class TestClientData(unittest.TestCase):
     self.assertIn('wind_speed', data)
     self.assertNotIn('next_rain_intervals', data)
     self.assertNotIn('next_rain', data)
+    self.assertNotIn('next_rain_datetime', data)
     self.assertNotIn('rain_forecast_text', data)
     self.assertNotIn('rain_forecast', data)
 
@@ -101,6 +103,7 @@ class TestRainForecast(unittest.TestCase):
     data = client.get_data()
     self.assertNotIn('next_rain_intervals', data)
     self.assertNotIn('next_rain', data)
+    self.assertNotIn('next_rain_datetime', data)
     self.assertNotIn('rain_forecast_text', data)
     self.assertNotIn('rain_forecast', data)
     client.need_rain_forecast = True
@@ -109,6 +112,7 @@ class TestRainForecast(unittest.TestCase):
     data = client.get_data()
     self.assertIn('next_rain_intervals', data)
     self.assertIn('next_rain', data)
+    self.assertIn('next_rain_datetime', data)
     self.assertIn('rain_forecast_text', data)
     self.assertIn('rain_forecast', data)
 
@@ -118,6 +122,7 @@ class TestRainForecast(unittest.TestCase):
     data = client.get_data()
     self.assertNotIn('next_rain_intervals', data)
     self.assertNotIn('next_rain', data)
+    self.assertNotIn('next_rain_datetime', data)
     self.assertNotIn('rain_forecast_text', data)
     self.assertNotIn('rain_forecast', data)
 
@@ -127,6 +132,7 @@ class TestRainForecast(unittest.TestCase):
     data = client.get_data()
     self.assertIn('next_rain_intervals', data)
     self.assertIn('next_rain', data)
+    self.assertIn('next_rain_datetime', data)
     self.assertIn('rain_forecast_text', data)
     self.assertIn('rain_forecast', data)
 

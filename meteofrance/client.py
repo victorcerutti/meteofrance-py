@@ -8,6 +8,8 @@ import requests
 import datetime
 import string
 from bs4 import BeautifulSoup
+from pytz import timezone
+
 
 
 SEARCH_API = 'http://www.meteofrance.com/mf3-rpc-portlet/rest/lieu/facet/previsions/search/{}'
@@ -121,6 +123,28 @@ class meteofranceClient():
             time_to_rain += 5
         return "No rain"
 
+    def _get_next_rain_datetime(self):
+        """Get the time of the next rain"""
+        # Convert the string in date and time with Europe/Paris timezone.
+        string_date = self._rain_forecast["echeance"]
+        annee = int(string_date[0:4])
+        mois = int(string_date[4:6])
+        jour = int(string_date[6:8])
+        heure = int(string_date[8:10])
+        minute = int(string_date[10:12])
+        paris_timezone = timezone("Europe/Paris")
+        cadran_start_time = paris_timezone.localize(
+            datetime.datetime(annee, mois, jour, heure, minute)
+        )
+
+        # Get the delay in minutes until next rain.
+        next_rain_delay = self._get_next_rain_time()
+        if next_rain_delay == "No rain":
+            return "No rain"
+        
+        # Else Compute the date of the next rain
+        return cadran_start_time + datetime.timedelta(minutes=int(next_rain_delay))
+        
     def _get_next_sun_time(self):
         """Get the minutes to the next sun"""
         time_to_sun = 0
@@ -136,8 +160,13 @@ class meteofranceClient():
             self._data["fetched_at"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             rain_forecast = self._rain_forecast
             if rain_forecast is not False:
+                next_rain_datetime = self._get_next_rain_datetime()
                 self._data["rain_forecast"] = ''#rain_forecast["niveauPluieText"][0]
                 self._data["next_rain"] = self._get_next_rain_time()
+                if next_rain_datetime == "No rain":
+                    self._data["next_rain_datetime"] = "No rain"
+                else: 
+                    self._data["next_rain_datetime"] = next_rain_datetime.isoformat()
                 emojis = [' ','☀️','🌦','🌧','💦']
                 self._data["next_rain_intervals"] = {}
                 for interval in range(0, len(rain_forecast["dataCadran"])):
@@ -148,7 +177,7 @@ class meteofranceClient():
                 elif self._data["next_rain"] == 0:
                     self._data["rain_forecast_text"] = "Pluie pendant encore au moins {} min".format(self._get_next_sun_time())
                 else:
-                    self._data["rain_forecast_text"] = "Risque de pluie dans {} min".format(self._data["next_rain"])
+                    self._data["rain_forecast_text"] = "Risque de pluie à partir de {}".format(next_rain_datetime.strftime("%H:%M"))
             soup = self._weather_html_soup
             if soup is not False:
                 self._data["weather"] = soup.find(class_="day-summary-label").string.strip()
@@ -159,9 +188,9 @@ class meteofranceClient():
                     self._data["weather_class"] = None
 
                 try:
-                    self._data["temperature"] = int(re.sub("[^0-9\-]","",soup.find(class_="day-summary-temperature").string))
+                    self._data["temperature"] = int(re.sub(r"[^0-9\-]","",soup.find(class_="day-summary-temperature").string))
                 except: #weird class name of world pages
-                    self._data["temperature"] = int(re.sub("[^0-9\-]","",soup.find(class_="day-summary-temperature-outremer").string))
+                    self._data["temperature"] = int(re.sub(r"[^0-9\-]","",soup.find(class_="day-summary-temperature-outremer").string))
 
                 try:
                     self._data["wind_speed"] = int(next(soup.find(class_="day-summary-wind").stripped_strings).replace(' km/h', ''))
@@ -200,8 +229,8 @@ class meteofranceClient():
                         forecast = {}
                         forecast["date"] = daydata.find("a").string
                         forecast["weather"] = daydata.find("dd").string.strip()
-                        forecast["min_temp"] = int(re.sub("[^0-9\-]","",daydata.find(class_="min-temp").string))
-                        forecast["max_temp"] = int(re.sub("[^0-9\-]","",daydata.find(class_="max-temp").string))
+                        forecast["min_temp"] = int(re.sub(r"[^0-9\-]","",daydata.find(class_="min-temp").string))
+                        forecast["max_temp"] = int(re.sub(r"[^0-9\-]","",daydata.find(class_="max-temp").string))
                         forecast["weather_class"] = daydata.find("dd").attrs['class'][1]
                         self._data["forecast"][day] = forecast
                     except:
